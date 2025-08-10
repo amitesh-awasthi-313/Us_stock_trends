@@ -25,13 +25,14 @@ def list_tickers(data_dir: str):
 @st.cache_data(show_spinner=False)
 def load_ticker_csv(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
+
     # Ensure expected columns exist
     if "Date" not in df.columns:
         raise ValueError(f"{os.path.basename(path)} missing 'Date' column.")
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    # Force presence of all expected numeric columns (fill with NaN if missing)
-    for c in ["Adj Close","Close","High","Low","Open","Volume"]:
+    # Force presence of expected numeric columns (fill with NaN if missing)
+    for c in ["Adj Close", "Close", "High", "Low", "Open", "Volume"]:
         if c not in df.columns:
             df[c] = np.nan
         df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -60,7 +61,7 @@ def apply_theme(dark: bool):
         st.markdown("""
             <style>
             .stApp { background-color: #0e1117; color: #f0f2f6; }
-            .css-10trblm, .css-uc76bn, .stMarkdown { color: #f0f2f6 !important; }
+            .stMarkdown, .stRadio, .stSelectbox, .stMultiSelect, .stDateInput, .stCaption, .stButton, .stText { color: #f0f2f6 !important; }
             </style>
         """, unsafe_allow_html=True)
         return "plotly_dark"
@@ -71,6 +72,18 @@ def apply_theme(dark: bool):
             </style>
         """, unsafe_allow_html=True)
         return "plotly"
+
+def finalize_interactions(fig, template, height=600):
+    fig.update_layout(
+        height=height,
+        margin=dict(l=20, r=20, t=40, b=20),
+        template=template,
+        hovermode="x unified",
+        hoverdistance=50,
+        transition_duration=500
+    )
+    fig.update_traces(hovertemplate="%{x}<br>%{y}")
+    return fig
 
 def build_overlay_chart(df_map, price_col, norm, date_from, date_to, show_volume, template):
     fig = make_subplots(specs=[[{"secondary_y": show_volume}]])
@@ -93,12 +106,11 @@ def build_overlay_chart(df_map, price_col, norm, date_from, date_to, show_volume
         fig.update_yaxes(title_text="Volume", secondary_y=True)
 
     fig.update_yaxes(title_text=f"{price_col} ({norm})", secondary_y=False)
-    fig.update_layout(height=600, margin=dict(l=20,r=20,t=40,b=20), template=template)
-    return fig
+    return finalize_interactions(fig, template, height=600)
 
 def build_small_multiples(df_map, price_col, norm, date_from, date_to, template, cols=3):
     tickers = list(df_map.keys())
-    rows = int(np.ceil(len(tickers)/cols))
+    rows = int(np.ceil(len(tickers) / cols))
     fig = make_subplots(rows=rows, cols=cols, subplot_titles=tickers, shared_xaxes=True)
     r = c = 1
     for ticker in tickers:
@@ -114,15 +126,14 @@ def build_small_multiples(df_map, price_col, norm, date_from, date_to, template,
         if c > cols:
             c = 1
             r += 1
-    fig.update_layout(height=max(600, 220*rows), margin=dict(l=20,r=20,t=40,b=20), template=template)
-    return fig
+    return finalize_interactions(fig, template, height=max(600, 220 * rows))
 
 # ---------- UI ----------
 st.title("US Stocks – Trend Viewer (Phase 1)")
 st.caption("Browse weekly trends; normalize; filter by date; compare visually.")
 
 with st.sidebar:
-    # Dark/Light toggle
+    # Dark/Light toggle: default = True (dark)
     dark_mode = st.toggle("Dark mode", value=True)
     template = apply_theme(dark_mode)
 
@@ -141,7 +152,6 @@ with st.sidebar:
     default_selection = [tickers[0]] if not select_all else tickers
     selected = st.multiselect("Companies", options=tickers, default=default_selection)
     if select_all and len(selected) != len(tickers):
-        # if user toggled "Select all" after initial render
         selected = tickers
 
     price_col = st.selectbox("Price column", VALID_PRICE_COLS, index=0)
