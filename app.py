@@ -14,6 +14,7 @@ st.set_page_config(page_title="Stock Trends Viewer", layout="wide")
 DEFAULT_DATA_DIR = "companies_csv_v2"  # set your folder once here
 VALID_PRICE_COLS = ["Adj Close", "Close"]
 BASE_FIELDS = ["Date", "Adj Close", "Close", "High", "Low", "Open", "Volume"]
+PRIMARY_LINE_COLOR = "#FDBA74"  # light orange for the main (first) line
 
 # ---------- Helpers ----------
 @st.cache_data(show_spinner=False)
@@ -87,14 +88,18 @@ def finalize_interactions(fig, template, height=600):
 
 def build_overlay_chart(df_map, price_col, norm, date_from, date_to, show_volume, template):
     fig = make_subplots(specs=[[{"secondary_y": show_volume}]])
-    for ticker, df in df_map.items():
+    # draw selected series; first trace = main line (orange)
+    for idx, (ticker, df) in enumerate(df_map.items()):
         mask = (df["Date"] >= date_from) & (df["Date"] <= date_to)
         d = df.loc[mask, ["Date", price_col, "Volume"]].copy()
         d[price_col] = normalize_series(d[price_col], norm)
-        fig.add_trace(
-            go.Scatter(x=d["Date"], y=d[price_col], name=ticker, mode="lines"),
-            secondary_y=False
-        )
+
+        scatter_kwargs = dict(x=d["Date"], y=d[price_col], name=ticker, mode="lines")
+        if idx == 0:
+            scatter_kwargs["line"] = dict(color=PRIMARY_LINE_COLOR)
+
+        fig.add_trace(go.Scatter(**scatter_kwargs), secondary_y=False)
+
     if show_volume:
         for ticker, df in df_map.items():
             mask = (df["Date"] >= date_from) & (df["Date"] <= date_to)
@@ -118,6 +123,8 @@ def build_small_multiples(df_map, price_col, norm, date_from, date_to, template,
         mask = (df["Date"] >= date_from) & (df["Date"] <= date_to)
         d = df.loc[mask, ["Date", price_col]].copy()
         d[price_col] = normalize_series(d[price_col], norm)
+
+        # small multiples keep default colors so each panel can differ naturally
         fig.add_trace(
             go.Scatter(x=d["Date"], y=d[price_col], name=ticker, mode="lines", showlegend=False),
             row=r, col=c
