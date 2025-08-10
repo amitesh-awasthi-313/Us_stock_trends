@@ -123,7 +123,7 @@ st.caption("Browse weekly trends; normalize; filter by date; compare visually.")
 
 with st.sidebar:
     # Dark/Light toggle
-    dark_mode = st.toggle("Dark mode", value=False)
+    dark_mode = st.toggle("Dark mode", value=True)
     template = apply_theme(dark_mode)
 
     st.header("Data")
