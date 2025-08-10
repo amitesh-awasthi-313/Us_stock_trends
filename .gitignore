@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/IDE
+.DS_Store
+.vscode/
+
+# Data (optional: keep if you don’t want to version large CSVs)
+# If you want the app to run without uploading data later, do NOT ignore the CSVs.
+# companies_csv_v2/
